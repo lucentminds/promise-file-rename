@@ -1,0 +1,23 @@
+{
+	"name": "promise-file-rename",
+	"date": "02-04-2017",
+	"description": "NodeJs module that renames one or more files with promise flow control.",
+	"main": "promise-file-rename.js",
+	"author": {
+		"name": "Scott Johnson"
+	},
+	"license": "MIT",
+	"version": "0.0.1",
+	"engines" : { 
+		"node" : ">=4.0.0" 
+	},
+	"repository":{
+		"type": "git",
+		"url": "https://github.com/lucentminds/promise-file-rename.git"
+	},
+	"dependencies": {
+    	"promise-resolve-path": "git+https://github.com/lucentminds/promise-resolve-path.git",
+    	"fs-extra": "^1.0.0",
+		"q": ">=1.4.1"
+	}
+}
