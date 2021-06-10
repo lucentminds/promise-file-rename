@@ -18,4 +18,7 @@ rename( './test/text2.txt', 'text1.txt' )
 })
 .then(function( cPath ){
     console.log( cPath );
-}).done();
+})
+.catch(function( err ){
+    console.log( err );
+});

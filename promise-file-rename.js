@@ -8,139 +8,130 @@
 /** List jshint ignore directives here. **/
 /* jshint undef: true, unused: true */
 /* jslint node: true */
+/* jslint esversion: 8 */
 
-var fs = require( 'fs' );
-var path = require( 'path' );
-var Q = require( 'q' );
-var fse = require( 'fs-extra' );
-var resolvePath = require( 'promise-resolve-path' );
-var copy = module.exports = function( aSrc, cNewName ){ // jshint ignore:line
-    var deferred = Q.defer();
-    var cSrcType = typeof aSrc;
+const fs = require( 'fs' );
+const path = require( 'path' );
+const fse = require( 'fs-extra' );
+const resolvePath = require( 'promise-resolve-path' );
+const rename = function( aSrc, cNewName ){ // jshint ignore:line
+   return new Promise(function( resolve, reject ){
+      var cSrcType = typeof aSrc;
 
-    switch( true ) {
-    case ( cSrcType === 'string' ):
-        aSrc = [aSrc];
-        break;
+      switch( true ) {
+      case ( cSrcType === 'string' ):
+         aSrc = [aSrc];
+         break;
 
-    case Array.isArray( aSrc ):
-        break;
+      case Array.isArray( aSrc ):
+         break;
 
-    default:
-        deferred.reject( 'Invalid source path argument: '.concat( aSrc ) );
-        return deferred.promise;
+      default:
+         return reject( 'Invalid source path argument: '.concat( aSrc ) );
+      }// /switch()
 
-    }// /switch()
+      // Resolve source paths and verify their existance.
+      resolvePath( aSrc, true )
+      .then(function( aSources ){
+         var i, l, aPromises = [];
+         var cSrc;
 
-    // Resolve source paths and verify their existance.
-    resolvePath( aSrc, true )
-    .then(function( aSources ){
-        var i, l, aPromises = [];
-        var cSrc;
-
-        // Loop over each source.
-        for( i = 0, l = aSources.length; i < l; i++ ) {
+         // Loop over each source.
+         for( i = 0, l = aSources.length; i < l; i++ ) {
             cSrc = aSources[ i ];
             aPromises.push( renameOnePath( cSrc, cNewName ) );
-
-        }// /for()
-        
-        // Either wait for all paths to be copied or reject one.
-       return Q.all( aPromises );
-       
-    })
-    .then(function( aRenamed ){
-        if( cSrcType === 'string' )  {
-            deferred.resolve( aRenamed[0] );
-        }
-        else {
-            deferred.resolve( aRenamed );
-        }
-    })
-    .fail(function( err ){
-       deferred.reject( err );
-    }).done();
-
-    return deferred.promise;
-};// /copy()
+         }// /for()
+         
+         // Either wait for all paths to be copied or reject one.
+         return Promise.all( aPromises );
+      })
+      .then(function( aRenamed ){
+         if( cSrcType === 'string' )  {
+            resolve( aRenamed[0] );
+         }
+         else {
+            resolve( aRenamed );
+         }
+      })
+      .catch(function( err ){
+         reject( err );
+      });
+   });
+};// /rename()
 
 var renameOnePath = function( cPathSrc, cNewName ) {
-    var deferred = Q.defer();
-    
-    // Either wait for all paths to be evaluated or reject one.
-    determinePathType( cPathSrc )
-    .then( function( cType ){
-        var cPathDir, cPathNew;
+   return new Promise(function( resolve, reject ){      
+      // Either wait for all paths to be evaluated or reject one.
+      determinePathType( cPathSrc )
+      .then( function( cType ){
+         var cPathDir, cPathNew;
 
-        switch( cType ) {
-        case 'file':            
-        case 'directory':
+         switch( cType ) {
+         case 'file':
+         case 'directory':
             cPathDir = path.dirname( cPathSrc );
             cPathNew = path.join( cPathDir, cNewName );
             break;
-            
-        default:
+               
+         default:
             throw new Error( ''.concat( 'Invalid file type "".' ) );
-        }// /switch()
+         }// /switch()
 
-        return cPathNew;
-    },
+         return cPathNew;
+      },
 
-    // One rejected.
-    function( err ){
-        throw new Error( err );
-    } )
+      // One rejected.
+      function( err ){
+         throw new Error( err );
+      } )
 
-    .then(function( cPathNew ){
+      .then(function( cPathNew ){
+         if( cPathSrc === cPathNew ) {
+            return resolve( cPathNew );
+         }
 
-        if( cPathSrc === cPathNew ) {
-            return deferred.resolve( cPathNew );
-        }
-
-        fse.move( cPathSrc, cPathNew, {}, function( err ) {
+         fse.move( cPathSrc, cPathNew, {}, function( err ) {
             if (err) {
-                return deferred.reject( err );
+               return reject( err );
             }
 
-            deferred.resolve( cPathNew );
+            resolve( cPathNew );
+         });
 
-        });
-
-    })
-    .fail(function( err ){
-        deferred.reject( err );
-    }).done();
-
-    return deferred.promise;
+      })
+      .catch(function( err ){
+         reject( err );
+      });
+   });
 };// /renameOnePath()
 
 var determinePathType = function( cPath ) {
-    var deferred = Q.defer();
-
-    fs.stat( cPath, function ( err, stats ) {
-        if ( err ) {
+   return new Promise(function( resolve, reject ){
+      fs.stat( cPath, function ( err, stats ) {
+         if ( err ) {
 
             if( err.code === 'ENOENT') {
-                // This isn't really an error. The path just doesn't exist.
-                deferred.resolve( 'ENOENT' );
+               // This isn't really an error. The path just doesn't exist.
+               resolve( 'ENOENT' );
             }
-            return deferred.reject( err );
-        }
+            return reject( err );
+         }
 
-        switch( true ){
-        case stats.isFile():
-            deferred.resolve( 'file' );
+         switch( true ){
+         case stats.isFile():
+            resolve( 'file' );
             break;
 
-        case stats.isDirectory():
-            deferred.resolve( 'directory' );
+         case stats.isDirectory():
+            resolve( 'directory' );
             break;
-            
-        default:
-            deferred.resolve( 'unknown' );
+               
+         default:
+            resolve( 'unknown' );
 
-        }// /switch()
-    });
-
-    return deferred.promise;
+         }// /switch()
+      });
+   });
 };// /determinePathType()
+
+module.exports = rename;

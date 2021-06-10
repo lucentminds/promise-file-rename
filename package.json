@@ -9,7 +9,7 @@
 	"license": "MIT",
 	"version": "0.0.1",
 	"engines" : { 
-		"node" : ">=4.0.0" 
+		"node" : ">=14.0.0" 
 	},
 	"repository":{
 		"type": "git",
@@ -17,7 +17,6 @@
 	},
 	"dependencies": {
     	"promise-resolve-path": "git+https://github.com/lucentminds/promise-resolve-path.git",
-    	"fs-extra": "^1.0.0",
-		"q": ">=1.4.1"
+    	"fs-extra": "^1.0.0"
 	}
 }
